@@ -18,26 +18,26 @@ const {
 // 設定
 // ==================================================
 
-const TOKEN = process.env.DISCORD_TOKEN;
+const TOKEN = 'DISCORD_TOKEN';
 const CLIENT_ID = '1548652857455026257';
-const GUILD_ID = '1398118337980006522';
+const GUILD_ID = '1548654022687465514';
 
 const RECRUIT_CATEGORY_NAME = '募集';
 
 // ==================================================
-// ランク
+// ランク設定（※実際のロールIDに変更してください）
 // ==================================================
 
 const RANKS = [
-    'アイアン',
-    'ブロンズ',
-    'シルバー',
-    'ゴールド',
-    'プラチナ',
-    'ダイヤモンド',
-    'アセンダント',
-    'イモータル',
-    'レディアント'
+    { name: 'アイアン', id: '1398661332089176169' },
+    { name: 'ブロンズ', id: '1398661728270553209' },
+    { name: 'シルバー', id: '1398661909699362953' },
+    { name: 'ゴールド', id: '1398661954285080616' },
+    { name: 'プラチナ', id: '1398661992159383724' },
+    { name: 'ダイヤモンド', id: '1398662041669075045' },
+    { name: 'アセンダント', id: '1398662081133412513' },
+    { name: 'イモータル', id: '1398662160434987131' },
+    { name: 'レディアント', id: '1398662195096715275' }
 ];
 
 // ==================================================
@@ -159,10 +159,10 @@ function getUserRank(member) {
         i++
     ) {
 
-        const rankName = RANKS[i];
+        const rankName = RANKS[i].name;
 
         const hasRank = member.roles.cache.some(
-            role => role.name === rankName
+            role => role.name === rankName || role.id === RANKS[i].id
         );
 
         if (hasRank) {
@@ -170,7 +170,8 @@ function getUserRank(member) {
             return {
 
                 index: i,
-                name: rankName
+                name: rankName,
+                id: RANKS[i].id
 
             };
 
@@ -224,10 +225,10 @@ function getNearbyRankRange(rankIndex) {
         maxRankIndex,
 
         minRank:
-            RANKS[minRankIndex],
+            RANKS[minRankIndex].name,
 
         maxRank:
-            RANKS[maxRankIndex]
+            RANKS[maxRankIndex].name
 
     };
 
@@ -235,23 +236,6 @@ function getNearbyRankRange(rankIndex) {
 
 // ==================================================
 // 募集パーティー全体のランク差チェック
-//
-// 最低ランクと最高ランクの差が
-// 1ランク以内ならOK
-//
-// 例:
-//
-// ゴールド + プラチナ
-// → OK
-//
-// ゴールド + プラチナ + ダイヤモンド
-// → NG
-//
-// ゴールド + ダイヤモンド
-// → NG
-//
-// シルバー + ゴールド + ゴールド
-// → OK
 // ==================================================
 
 function checkPartyRankSpread(
@@ -288,10 +272,10 @@ function checkPartyRankSpread(
         difference,
 
         lowestRank:
-            RANKS[lowestIndex],
+            RANKS[lowestIndex].name,
 
         highestRank:
-            RANKS[highestIndex]
+            RANKS[highestIndex].name
 
     };
 
@@ -383,8 +367,6 @@ async function getRecruitCategory(guild) {
 
 // ==================================================
 // VC参加権限を追加
-//
-// ※ここでは絶対にVCへ移動しない
 // ==================================================
 
 async function addMemberToVoice(
@@ -429,8 +411,6 @@ async function addMemberToVoice(
 
 // ==================================================
 // 参加者一覧作成
-//
-// @ユーザー　🏆 ゴールド
 // ==================================================
 
 async function getParticipantDisplay(
@@ -451,7 +431,7 @@ async function getParticipantDisplay(
         if (!member) {
 
             lines.push(
-                `<@${userId}>　🏆 ランク未設定`
+                `<@${userId}> 🏆 ランク未設定`
             );
 
             continue;
@@ -464,13 +444,13 @@ async function getParticipantDisplay(
         if (rank) {
 
             lines.push(
-                `<@${userId}>　🏆 ${rank.name}`
+                `<@${userId}> 🏆 ${rank.name}`
             );
 
         } else {
 
             lines.push(
-                `<@${userId}>　🏆 ランク未設定`
+                `<@${userId}> 🏆 ランク未設定`
             );
 
         }
@@ -625,10 +605,6 @@ async function deleteRecruitment(
 
     if (!recruitment) return;
 
-    // ==================================================
-    // タイマー停止
-    // ==================================================
-
     if (
         emptyTimers.has(
             recruitmentId
@@ -646,10 +622,6 @@ async function deleteRecruitment(
         );
 
     }
-
-    // ==================================================
-    // VC削除
-    // ==================================================
 
     const voiceChannel =
         await recruitment.guild.channels
@@ -672,10 +644,6 @@ async function deleteRecruitment(
             });
 
     }
-
-    // ==================================================
-    // 募集パネル削除
-    // ==================================================
 
     const textChannel =
         await recruitment.guild.channels
@@ -703,10 +671,6 @@ async function deleteRecruitment(
 
     }
 
-    // ==================================================
-    // データ削除
-    // ==================================================
-
     recruitments.delete(
         recruitmentId
     );
@@ -718,8 +682,7 @@ async function deleteRecruitment(
 }
 
 // ==================================================
-// VCが空になったとき
-// 1分後に削除
+// VCが空になったときのタイマー
 // ==================================================
 
 function startEmptyTimer(
@@ -729,7 +692,6 @@ function startEmptyTimer(
     const recruitmentId =
         recruitment.id;
 
-    // すでにタイマーがあるなら何もしない
     if (
         emptyTimers.has(
             recruitmentId
@@ -768,10 +730,6 @@ function startEmptyTimer(
                     return;
 
                 }
-
-                // ==================================================
-                // 1分後にまだ空なら削除
-                // ==================================================
 
                 if (
                     voiceChannel.members.size === 0
@@ -819,10 +777,6 @@ client.on(
     async interaction => {
 
         try {
-
-            // ==================================================
-            // /募集
-            // ==================================================
 
             if (
                 interaction.isChatInputCommand()
@@ -902,10 +856,6 @@ client.on(
 
                         );
 
-                // ==================================================
-                // 本人だけに表示
-                // ==================================================
-
                 await interaction.reply({
 
                     embeds: [
@@ -924,10 +874,6 @@ client.on(
                 return;
 
             }
-
-            // ==================================================
-            // DUO / TRIO / FULL
-            // ==================================================
 
             if (
                 interaction.isButton() &&
@@ -949,10 +895,6 @@ client.on(
                     ];
 
                 if (!settings) return;
-
-                // ==================================================
-                // DUO / TRIO
-                // ==================================================
 
                 if (
                     partyType === 'DUO' ||
@@ -1023,10 +965,6 @@ client.on(
 
                 }
 
-                // ==================================================
-                // FULL PARTY
-                // ==================================================
-
                 const minRankMenu =
                     new StringSelectMenuBuilder()
                         .setCustomId(
@@ -1037,12 +975,12 @@ client.on(
                         );
 
                 RANKS.forEach(
-                    (rank, index) => {
+                    (rankObj, index) => {
 
                         minRankMenu.addOptions({
 
                             label:
-                                rank,
+                                rankObj.name,
 
                             value:
                                 String(index),
@@ -1077,17 +1015,9 @@ client.on(
 
             }
 
-            // ==================================================
-            // ランク選択
-            // ==================================================
-
             if (
                 interaction.isStringSelectMenu()
             ) {
-
-                // ==================================================
-                // 最低ランク
-                // ==================================================
 
                 if (
                     interaction.customId.startsWith(
@@ -1103,7 +1033,7 @@ client.on(
                     const minRank =
                         RANKS[
                             minRankIndex
-                        ];
+                        ].name;
 
                     const maxRankMenu =
                         new StringSelectMenuBuilder()
@@ -1127,7 +1057,7 @@ client.on(
                         maxRankMenu.addOptions({
 
                             label:
-                                RANKS[i],
+                                RANKS[i].name,
 
                             value:
                                 String(i),
@@ -1164,10 +1094,6 @@ client.on(
                     return;
 
                 }
-
-                // ==================================================
-                // 最高ランク
-                // ==================================================
 
                 if (
                     interaction.customId.startsWith(
@@ -1210,10 +1136,6 @@ client.on(
                 }
 
             }
-
-            // ==================================================
-            // 参加する
-            // ==================================================
 
             if (
                 interaction.isButton() &&
@@ -1305,10 +1227,6 @@ client.on(
 
                 }
 
-                // ==================================================
-                // メンバー取得
-                // ==================================================
-
                 const member =
                     await interaction.guild.members
                         .fetch(
@@ -1332,10 +1250,6 @@ client.on(
 
                 }
 
-                // ==================================================
-                // ランク取得
-                // ==================================================
-
                 const userRank =
                     getUserRank(member);
 
@@ -1355,10 +1269,6 @@ client.on(
                     return;
 
                 }
-
-                // ==================================================
-                // 募集設定上のランクチェック
-                // ==================================================
 
                 if (
                     userRank.index <
@@ -1386,10 +1296,6 @@ client.on(
                     return;
 
                 }
-
-                // ==================================================
-                // パーティー全体のランク差チェック
-                // ==================================================
 
                 const currentRankIndexes =
                     await getRecruitmentRankIndexes(
@@ -1430,10 +1336,6 @@ client.on(
 
                 }
 
-                // ==================================================
-                // VC取得
-                // ==================================================
-
                 const voiceChannel =
                     await interaction.guild.channels
                         .fetch(
@@ -1456,12 +1358,6 @@ client.on(
                     return;
 
                 }
-
-                // ==================================================
-                // VCアクセス権を追加
-                //
-                // ※ここではVCへ移動しない
-                // ==================================================
 
                 const permissionAdded =
                     await addMemberToVoice(
@@ -1488,17 +1384,9 @@ client.on(
 
                 }
 
-                // ==================================================
-                // 参加者追加
-                // ==================================================
-
                 recruitment.members.push(
                     interaction.user.id
                 );
-
-                // ==================================================
-                // 返信
-                // ==================================================
 
                 await interaction.reply({
 
@@ -1521,10 +1409,6 @@ client.on(
 
                 });
 
-                // ==================================================
-                // パネル更新
-                // ==================================================
-
                 await updateRecruitmentPanel(
                     recruitment
                 );
@@ -1532,10 +1416,6 @@ client.on(
                 return;
 
             }
-
-            // ==================================================
-            // 募集終了
-            // ==================================================
 
             if (
                 interaction.isButton() &&
@@ -1620,7 +1500,6 @@ client.on(
                 error
             );
 
-            // まだ返信していない場合だけエラーを返す
             if (
                 !interaction.replied &&
                 !interaction.deferred
@@ -1669,10 +1548,6 @@ async function createRecruitment(
     const guild =
         interaction.guild;
 
-    // ==================================================
-    // ランク値チェック
-    // ==================================================
-
     if (
         minRankIndex < 0 ||
         maxRankIndex >= RANKS.length ||
@@ -1694,14 +1569,10 @@ async function createRecruitment(
     }
 
     const minRank =
-        RANKS[minRankIndex];
+        RANKS[minRankIndex].name;
 
     const maxRank =
-        RANKS[maxRankIndex];
-
-    // ==================================================
-    // 募集主
-    // ==================================================
+        RANKS[maxRankIndex].name;
 
     const creator =
         await guild.members
@@ -1735,7 +1606,7 @@ async function createRecruitment(
 
             content:
                 '❌ あなたのランクロールが見つかりません。\n\n' +
-                'サーバーの「体験をカスタマイズしましょう」でランクを設定してください。',
+                '運営に問い合わせてください。',
 
             flags:
                 MessageFlags.Ephemeral
@@ -1745,10 +1616,6 @@ async function createRecruitment(
         return;
 
     }
-
-    // ==================================================
-    // 募集主がランク範囲内か確認
-    // ==================================================
 
     if (
         creatorRank.index <
@@ -1777,25 +1644,13 @@ async function createRecruitment(
 
     }
 
-    // ==================================================
-    // 募集カテゴリ
-    // ==================================================
-
     const category =
         await getRecruitCategory(
             guild
         );
 
-    // ==================================================
-    // ID
-    // ==================================================
-
     const recruitmentId =
         `${interaction.user.id}_${Date.now()}`;
-
-    // ==================================================
-    // VC作成
-    // ==================================================
 
     const voiceChannel =
         await guild.channels.create({
@@ -1811,10 +1666,6 @@ async function createRecruitment(
 
             permissionOverwrites: [
 
-                // ------------------------------------------
-                // @everyone
-                // ------------------------------------------
-
                 {
 
                     id:
@@ -1829,10 +1680,6 @@ async function createRecruitment(
                     ]
 
                 },
-
-                // ------------------------------------------
-                // 募集主
-                // ------------------------------------------
 
                 {
 
@@ -1854,10 +1701,6 @@ async function createRecruitment(
             ]
 
         });
-
-    // ==================================================
-    // 募集データ
-    // ==================================================
 
     const recruitment = {
 
@@ -1922,12 +1765,8 @@ async function createRecruitment(
 
     );
 
-    // ==================================================
-    // 募集パネル
-    // ==================================================
-
     const memberList =
-        `<@${creator.id}>　🏆 ${creatorRank.name}`;
+        `<@${creator.id}> 🏆 ${creatorRank.name}`;
 
     const embed =
         new EmbedBuilder()
@@ -1990,10 +1829,6 @@ async function createRecruitment(
 
             );
 
-    // ==================================================
-    // 元の画面
-    // ==================================================
-
     if (
         interaction.replied ||
         interaction.deferred
@@ -2025,11 +1860,25 @@ async function createRecruitment(
     }
 
     // ==================================================
-    // 募集パネル送信
+    // メンション用ロールIDの文字列を組み立て
+    // ==================================================
+
+    const targetMentions = [];
+    for (let i = minRankIndex; i <= maxRankIndex; i++) {
+        if (RANKS[i].id && !RANKS[i].id.startsWith('YOUR_')) {
+            targetMentions.push(`<@&${RANKS[i].id}>`);
+        }
+    }
+    const mentionText = targetMentions.length > 0 ? targetMentions.join(' ') : '';
+
+    // ==================================================
+    // 募集パネル送信 (メンション付き)
     // ==================================================
 
     const message =
         await interaction.channel.send({
+
+            content: mentionText || null,
 
             embeds: [
                 embed
@@ -2044,24 +1893,9 @@ async function createRecruitment(
     recruitment.messageId =
         message.id;
 
-    // ==================================================
-    // 重要
-    //
-    // VC作成直後は誰も入っていないので
-    // voiceStateUpdateが発生しない。
-    //
-    // そのためここで1分タイマーを開始する。
-    // ==================================================
-
     startEmptyTimer(
         recruitment
     );
-
-    // ==================================================
-    // 募集主への注意
-    //
-    // 募集主だけに表示
-    // ==================================================
 
     await interaction.followUp({
 
@@ -2101,10 +1935,6 @@ client.on(
 
         try {
 
-            // ==================================================
-            // Party MakerのVCを探す
-            // ==================================================
-
             for (
                 const [
                     recruitmentId,
@@ -2129,10 +1959,6 @@ client.on(
                     continue;
 
                 }
-
-                // ==================================================
-                // VC取得
-                // ==================================================
 
                 const voiceChannel =
                     await recruitment.guild.channels
@@ -2169,15 +1995,7 @@ client.on(
 
                 }
 
-                // ==================================================
-                // 誰かがVCに入った
-                // ==================================================
-
                 if (isNewChannel) {
-
-                    // ------------------------------------------
-                    // 空VC削除タイマーをキャンセル
-                    // ------------------------------------------
 
                     if (
                         emptyTimers.has(
@@ -2201,10 +2019,6 @@ client.on(
 
                     }
 
-                    // ------------------------------------------
-                    // 参加者リストに追加
-                    // ------------------------------------------
-
                     if (
                         !recruitment.members.includes(
                             newState.id
@@ -2223,29 +2037,17 @@ client.on(
 
                 }
 
-                // ==================================================
-                // VCから出た
-                // ==================================================
-
                 if (
                     isOldChannel &&
                     oldState.channelId !==
                         newState.channelId
                 ) {
 
-                    // ------------------------------------------
-                    // 参加者リストから削除
-                    // ------------------------------------------
-
                     recruitment.members =
                         recruitment.members.filter(
                             id =>
                                 id !== oldState.id
                         );
-
-                    // ------------------------------------------
-                    // VCが空なら1分タイマー開始
-                    // ------------------------------------------
 
                     if (
                         voiceChannel.members.size === 0

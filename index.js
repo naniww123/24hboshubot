@@ -18,7 +18,7 @@ const {
 // 設定
 // ==================================================
 
-const TOKEN = 'DISCORD_TOKEN';
+const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = '1548652857455026257';
 const GUILD_ID = '1548654022687465514';
 
